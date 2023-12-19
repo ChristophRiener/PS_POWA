@@ -1,0 +1,17 @@
+function buchung_clipboard {
+    param (
+        [string]$FolderPath,
+        [string]$FileName
+    )
+
+    $FilePath = Join-Path -Path "C:\temp\ps_powa\menu\Buchungsvorlagen" $FileName
+
+    # Check if the file exists
+
+    get-content $filepath | set-clipboard
+    return = null
+}
+
+# Example usage
+#$FolderPath = "C:\temp\ps_powa\modules\Buchungsvorlagen"
+#Get-ClipboardFromTxtFile -FolderPath $FolderPath -FileName $Filename
