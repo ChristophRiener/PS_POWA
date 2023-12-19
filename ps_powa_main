@@ -1,0 +1,110 @@
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
+# Create form
+$form = New-Object System.Windows.Forms.Form
+$form.Text = "Folder and File Selector"
+$form.Size = New-Object System.Drawing.Size(400, 200)
+
+# Create left dropdown menu (folder selection)
+$leftDropdown = New-Object System.Windows.Forms.ComboBox
+$leftDropdown.Location = New-Object System.Drawing.Point(20, 20)
+$leftDropdown.Size = New-Object System.Drawing.Size(150, 25)
+
+# Get folder names from C:\temp\ps_powa\menu
+$folderPath = "C:\temp\ps_powa\menu"
+$folders = Get-ChildItem -Path $folderPath -Directory | Select-Object -ExpandProperty Name
+$leftDropdown.Items.AddRange($folders)
+
+# Create right dropdown menu (file selection)
+$rightDropdown = New-Object System.Windows.Forms.ComboBox
+$rightDropdown.Location = New-Object System.Drawing.Point(200, 20)
+$rightDropdown.Size = New-Object System.Drawing.Size(150, 25)
+
+# Event handler for left dropdown selection change
+$leftDropdown.Add_SelectedIndexChanged({
+    $selectedFolder = $leftDropdown.SelectedItem
+    $files = Get-ChildItem -Path (Join-Path $folderPath $selectedFolder) | Where-Object { -not $_.PSIsContainer } | Select-Object -ExpandProperty Name
+    $rightDropdown.Items.Clear()
+    $rightDropdown.Items.AddRange($files)
+})
+
+# OK button to close the form and store selections in a file
+$okButton = New-Object System.Windows.Forms.Button
+$okButton.Location = New-Object System.Drawing.Point(150, 70)
+$okButton.Size = New-Object System.Drawing.Size(80, 30)
+$okButton.Text = "OK"
+$okButton.Add_Click({
+    $selectedFolder = $leftDropdown.SelectedItem
+    $selectedFile = $rightDropdown.SelectedItem
+    $result = New-Object PSObject -Property @{
+        Folder = $selectedFolder
+        File = $selectedFile
+    }
+    $result | Export-Csv -Path "$env:TEMP\Selections.csv" -NoTypeInformation -Force
+    $form.Close()
+})
+
+# Add controls to the form
+$form.Controls.Add($leftDropdown)
+$form.Controls.Add($rightDropdown)
+$form.Controls.Add($okButton)
+
+# Event handler for form shown
+$form.Add_Shown({
+    $form.Activate()
+    $form.Topmost = $true
+})
+
+# Display the form
+$form.ShowDialog()
+
+# Read selections from the file
+if (Test-Path "$env:TEMP\Selections.csv") {
+    $selections = Import-Csv -Path "$env:TEMP\Selections.csv"
+    $selectedFolder = $selections.Folder
+    $selectedFile = $selections.File
+
+# Output selected folder and run script based on its name
+Write-Host "Selected Folder: $selectedFolder"
+Write-Host "Selected Folder: $selectedFile"
+
+$scriptName = "$selectedFolder.ps1"
+$scriptPath = Join-Path "C:\temp\ps_powa\modules" $scriptName
+
+if (Test-Path $scriptPath) {
+
+    # Call the script with parameters
+    & $scriptPath -param1 $selectedFolder -param2 $selectedFolder
+} else {
+    Write-Host "Script not found: $scriptPath"
+}
+
+
+    # Remove the temporary file
+    Remove-Item "$env:TEMP\Selections.csv" -Force
+                                            } 
+else {
+    Write-Host "No selections made."
+}
+
+# Switch case based on the selected folder
+        switch ($SelectedFolder) {
+            "Buchungsvorlagen" {
+                Write-Host "Executing command X for FolderA"
+                # Your command X logic here
+                buchung_clipboard -FileName $filename
+            }
+            "Export to Mailvorlage" {
+                Write-Host "Executing command Y for FolderB"
+                # Your command Y logic here
+            }
+            "FolderC" {
+                Write-Host "Executing command Z for FolderC"
+                # Your command Z logic here
+            }
+            # Add more cases for other folders as needed
+            default {
+                Write-Host "No command specified for the selected folder: $SelectedFolder"
+            }
+        }
